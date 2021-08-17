@@ -26,7 +26,7 @@ const initialized = require('../config/passportconfig');
 
  function checkAuthenticated(req, res, next) {
     if (req.isAuthenticated()) {
-      return res.redirect("/admin/admindashboard");
+      return res.redirect("/admin_dashboard");
     }
     next();
   }
@@ -35,7 +35,7 @@ const initialized = require('../config/passportconfig');
     if (req.isAuthenticated()) {
       return next();
     }
-    res.redirect("/adminlogin");
+    res.redirect("/404");
   }
   app.post("/adminlogin",
    passport.authenticate('local'), async(req,res)=> {
@@ -67,9 +67,9 @@ const initialized = require('../config/passportconfig');
     res.redirect('/admin/adminlogin')
  });
 
-  app.get('/admindashboard', checkNotAuthenticated, async function  (req, res) {
+  app.get('/admin_dashboard', checkNotAuthenticated, async function  (req, res) {
     
-    const keys = await pool.query( `SELECT access_key,status,start_date,start_date+interval'5 DAYS' AS expiry_date FROM keystorage ORDER BY id DESC`);
+    const keys = await pool.query( `SELECT access_key,status,start  AS expiry_date FROM keystorage ORDER BY id DESC`);
     const allKeys = keys.rows;
      res.render("admindashboard", {allKeys})
     

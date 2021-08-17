@@ -44,7 +44,7 @@ app.use(passport.session());
 app.use(flash());
 
 
-app.use('/login', userroutes)
+app.use('/', userroutes)
 app.use('/admin', adminroutes)
 
 
@@ -60,7 +60,7 @@ app.use('/admin', adminroutes)
   app.get('/admin/logout', (req, res) => {
     req.logout();
     req.flash("success_msg","you are logged out")
-    res.redirect('/admin/adminlogin')
+    res.redirect('/login')
  });
 
 
