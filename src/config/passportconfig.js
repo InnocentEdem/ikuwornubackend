@@ -5,10 +5,10 @@ const bcrypt = require("bcrypt");
 function initialize(passport) {
   
 
-  const authenticate =  (useremail, userpassword, done) => {
+  const authenticate =  (username, userpassword, done) => {
    
   pool.query(
-      `SELECT * FROM userdata WHERE email = $1`,[useremail],
+      `SELECT * FROM quizmaster WHERE email = $1`,[username],
       (err, results) => {
         if (err) {
           throw err;
@@ -30,7 +30,7 @@ function initialize(passport) {
                 
             else {
               //password is incorrect
-              return done(null, false, { message: "Password is incorrect" });
+              return done(null, false, { message: "Incorrect Credentials" });
             }
           });
         } 
@@ -40,7 +40,7 @@ function initialize(passport) {
         else {
           // No user
           return done(null, false, {
-            message: "No user with that email address"
+            message: "Incorrect Credentials"
           });
         }
       }
@@ -49,7 +49,7 @@ function initialize(passport) {
 
   passport.use(
     new LocalStrategy(
-      { usernameField: "useremail", passwordField: "userpassword" },
+      { usernameField: "username", passwordField: "user_password" },
       authenticate
     )
   );
@@ -58,7 +58,7 @@ function initialize(passport) {
 
   
   passport.deserializeUser((id, done) => {
-    pool.query(`SELECT * FROM userdata WHERE id = $1`, [id], (err, results) => {
+    pool.query(`SELECT * FROM quizmasters WHERE id = $1`, [id], (err, results) => {
       if (err) {
         return done(err);
       }

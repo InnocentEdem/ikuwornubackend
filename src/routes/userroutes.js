@@ -22,9 +22,7 @@ app.use(passport.initialize());
 app.get('/',  (req, res) => {
     res.render("index")
 });
-app.get('/register', checkAuthenticated,  (req, res) => {
-    res.render("register.ejs")
-});
+
 app.get('/login', checkAuthenticated, (req, res) => {
     
     res.render("login")
@@ -32,48 +30,32 @@ app.get('/login', checkAuthenticated, (req, res) => {
 
 
 
-app.get('/userdashboard', checkNotAuthenticated, async function  (req, res) {
-    const keys = await pool.query( `SELECT access_key,status, start_date,start_date+interval'5 DAYS' AS expiry_date FROM keystorage ORDER BY id DESC`);
-    const allKeys = keys.rows;
-     res.render("userdashboard", {allKeys})
+// app.get('/userdashboard', checkNotAuthenticated, async function  (req, res) {
+//     const keys = await pool.query( `SELECT access_key,status, start_date,start_date+interval'5 DAYS' AS expiry_date FROM keystorage ORDER BY id DESC`);
+//     const allKeys = keys.rows;
+//      res.render("userdashboard", {allKeys})
     
-});
-
-
-
-
-
-
+// });
 
 //create
-app.post("/register",  async function (req,res) {
-
-   
-    let { username, useremail, schoolname, userpassword, userpassword2 } = req.body;
+app.post("admin/register",  async function (req,res) {
+    let { username,  userpassword } = req.body;
 
     console.log({
       username,
-      schoolname,
-      useremail,
       userpassword,
-      userpassword2
+     
   });
 
     let errors = [];
     
 
-     if(!username || !useremail || !schoolname || !userpassword || !userpassword2){
+     if(!username || !userpassword ){
         errors.push("Please enter all fields")
     }
-       if(userpassword.length < 6){
-        errors.push("invalid password, should be at least 6 characters")
-
-       }
-      if (userpassword !== userpassword2){
-        errors.push("Passwords donot match")
-      }
+      
       if (errors.lenght>0){
-          res.render('register',{errors,name,email,schoolname,userpassword,userpassword2})
+         
       }
       else{
           //validation passed
@@ -82,30 +64,27 @@ app.post("/register",  async function (req,res) {
           console.log(hashedpassword);
 
           pool.query(
-            `SELECT * FROM userdata
-            WHERE email = $1`,
-          [useremail],
+            `SELECT * FROM quizmasters
+            WHERE username = $1`,
+          [username],
           (err, results) => {
             if (err) {
               console.log(err);
-            }
-            console.log(results.rows); 
+            } 
             if (results.rows.length > 0) {
-                return res.render("register", {
-                  message: "Email already registered"
-                });
+                
               } else {
                 pool.query(
-                  `INSERT INTO userdata (name, schoolname, email, password)
-                      VALUES ($1, $2, $3,$4)
+                  `INSERT INTO quizmasters (username, password)
+                      VALUES ($1, $2)
                       RETURNING id, password`,
-                  [username, schoolname, useremail, hashedpassword],
+                  [username, hashedpassword],
                   (err, results) => {
                     if (err) {
                       throw err;
                     }
                     console.log(results.rows);
-                    req.flash("success_msg", "You are now registered. Please log in");
+                    req.flash("success_msg", "Quizmaster registered. Please log in");
                     res.redirect("/users/login");
                   }
                 );
@@ -119,11 +98,11 @@ app.post("/register",  async function (req,res) {
 
 app.post('/login', 
 passport.authenticate('local'), async (req,res)=> {
-  const {useremail} = req.body
-  let results = await pool.query(`SELECT * FROM userdata WHERE email = $1`,[useremail])
+  const {username} = req.body
+  let results = await pool.query(`SELECT * FROM quizmaster WHERE email = $1`,[username])
   
   try{
-    if(results.rows[0].roles === null || results.rows[0].roles ==='admin'){
+    if(results.rows[0].roles === null ){ //user is not admin
       
       console.log(results.rows[0].roles)
       return res.redirect('userdashboard')
@@ -142,7 +121,7 @@ passport.authenticate('local'), async (req,res)=> {
   
   function checkAuthenticated(req, res, next) {
     if (req.isAuthenticated()) {
-      return res.redirect("/users/userdashboard");
+      return res.redirect("/users/userdashboard"); //redirect user to homepage
     }
     next();
   }
@@ -151,62 +130,12 @@ passport.authenticate('local'), async (req,res)=> {
     if (req.isAuthenticated()) {
       return next();
     }
-    res.redirect("/users/login");
+    res.redirect("/users/login"); //redirect to login page
   }
-  app.get('/users/logout', (req, res) => {
+  app.get('/logout', (req, res) => {
     req.logout();
-    req.flash("success_msg","you are logged out")
+    req.flash("success_msg","you are logged out") //logout and redirect to login page
     res.redirect('/users/login')
  });
-
-
-
-app.post('/userdashboard',(req, res)=>{
-    
-    
-
-    function keyGenerator(){   
-        let putSpace = 3
-        let keyArray = [];
-        let hexRef = [1,2,3,4,5,6,7,8,9,'A','B','C','D','E','F','0'];
-        for(let i = 0; i < 16; i++){
-            let thisIndex = Math.floor((Math.random() * 15) + 1);
-            keyArray.push(hexRef[thisIndex]);
-            if(i === putSpace){
-              keyArray.push(" ")
-              putSpace+=4
-            }
-        }
-        return keyArray.join("");
-    }
- 
-    try{
-    
-     pool.query(`INSERT INTO keystorage (access_key,status) VALUES($1,$2) RETURNING access_key `,[keyGenerator(),"active"],
-     (err,results)=>{
-        if(err){
-          console.log(err)
-        }
-        
-        const allKeys = results.rows;
-     res.render("userdashboard", {allKeys})
-     })
-  
-    
-  } catch(err){
-    console.error(err.message);
-  }
-  });
-  
- 
-
-
-
-
-
-
-
-
-
 
 module.exports = app
